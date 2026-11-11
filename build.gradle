@@ -1,0 +1,64 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.dzollo'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+dependencies {
+    testImplementation 'com.microsoft.playwright:playwright:1.64.0'
+    testImplementation platform('org.junit:junit-bom:6.1.3')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test', Test) {
+    useJUnitPlatform {
+        if (project.hasProperty('includeTags')) {
+            includeTags(*project.property('includeTags').toString().split(','))
+        }
+        if (project.hasProperty('excludeTags')) {
+            excludeTags(*project.property('excludeTags').toString().split(','))
+        }
+    }
+
+    systemProperty 'headed', System.getProperty('headed', 'false')
+
+    testLogging {
+        events = ['passed', 'skipped', 'failed']
+        exceptionFormat = 'short'
+    }
+}
+
+tasks.register('smokeTest', Test) {
+    group = 'verification'
+    description = 'Runs tests tagged with "smoke".'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'smoke'
+    }
+    systemProperty 'headed', System.getProperty('headed', 'false')
+    testLogging {
+        events = ['passed', 'skipped', 'failed']
+        exceptionFormat = 'short'
+    }
+}
+
+tasks.register('installPlaywright', JavaExec) {
+    group = 'playwright'
+    description = 'Install the Chromium browser required by Playwright.'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.microsoft.playwright.CLI'
+    args 'install', 'chromium'
+}
