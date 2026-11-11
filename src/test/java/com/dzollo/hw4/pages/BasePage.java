@@ -1,7 +1,13 @@
 package com.dzollo.hw4.pages;
 
-import com.microsoft.playwright.Page;
+import java.util.concurrent.TimeUnit;
 
+import org.junit.jupiter.api.Timeout;
+
+import com.microsoft.playwright.Page;
+import com.microsoft.playwright.options.WaitUntilState;
+
+@Timeout(value = 60, unit = TimeUnit.SECONDS)
 public abstract class BasePage {
     private static final String BASE_URL = "https://the-internet.herokuapp.com";
 
@@ -16,7 +22,8 @@ public abstract class BasePage {
     }
 
     protected final void openPath(final String path) {
-        page.navigate(BASE_URL + path);
+        page.navigate(BASE_URL + path, new Page.NavigateOptions()
+                .setWaitUntil(WaitUntilState.DOMCONTENTLOADED));
     }
 
     protected final String currentUrl() {

@@ -23,10 +23,32 @@ dependencies {
 }
 
 tasks.named('test', Test) {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        if (project.hasProperty('includeTags')) {
+            includeTags(*project.property('includeTags').toString().split(','))
+        }
+        if (project.hasProperty('excludeTags')) {
+            excludeTags(*project.property('excludeTags').toString().split(','))
+        }
+    }
 
     systemProperty 'headed', System.getProperty('headed', 'false')
 
+    testLogging {
+        events = ['passed', 'skipped', 'failed']
+        exceptionFormat = 'short'
+    }
+}
+
+tasks.register('smokeTest', Test) {
+    group = 'verification'
+    description = 'Runs tests tagged with "smoke".'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'smoke'
+    }
+    systemProperty 'headed', System.getProperty('headed', 'false')
     testLogging {
         events = ['passed', 'skipped', 'failed']
         exceptionFormat = 'short'

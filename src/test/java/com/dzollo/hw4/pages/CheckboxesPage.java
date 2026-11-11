@@ -5,14 +5,11 @@ import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
 
 public class CheckboxesPage extends BasePage {
-    private final Locator firstCheckbox;
-    private final Locator secondCheckbox;
+    private final Locator checkboxes;
 
     public CheckboxesPage(final Page page) {
         super(page);
-        final Locator checkboxes = page.getByRole(AriaRole.CHECKBOX);
-        firstCheckbox = checkboxes.nth(0);
-        secondCheckbox = checkboxes.nth(1);
+        checkboxes = page.getByRole(AriaRole.CHECKBOX);
     }
 
     public CheckboxesPage open() {
@@ -20,19 +17,19 @@ public class CheckboxesPage extends BasePage {
         return this;
     }
 
-    public boolean isFirstCheckboxChecked() {
-        return firstCheckbox.isChecked();
+    public int count() {
+        return checkboxes.count();
     }
 
-    public boolean isSecondCheckboxChecked() {
-        return secondCheckbox.isChecked();
+    public boolean isChecked(final int index) {
+        return checkboxes.nth(index).isChecked();
     }
 
-    public void checkFirstCheckbox() {
-        firstCheckbox.check();
+    public void check(final int index) {
+        checkboxes.nth(index).check();
     }
 
-    public void uncheckSecondCheckbox() {
-        secondCheckbox.uncheck();
+    public void uncheck(final int index) {
+        checkboxes.nth(index).uncheck();
     }
 }
