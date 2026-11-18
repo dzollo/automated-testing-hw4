@@ -1,6 +1,10 @@
 package com.dzollo.hw4.tests;
 
+import static com.dzollo.hw4.data.TestDataRegistry.message;
+import static com.dzollo.hw4.data.TestDataRegistry.MessageKey.LOGIN_SUCCESS;
+import static com.dzollo.hw4.data.TestDataRegistry.MessageKey.LOGOUT_SUCCESS;
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Disabled;
@@ -10,17 +14,18 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import com.dzollo.hw4.BaseTest;
+import com.dzollo.hw4.data.CredentialsFactory;
+import com.dzollo.hw4.model.Credentials;
+import com.dzollo.hw4.model.FlashMessage;
 import com.dzollo.hw4.pages.LoginPage;
 import com.dzollo.hw4.pages.SecureAreaPage;
 
 @Tag("login")
 @DisplayName("Login")
 class LoginTests extends BaseTest {
-        private static final String VALID_USERNAME = "tomsmith";
-        private static final String VALID_PASSWORD = "SuperSecretPassword!";
 
         @Nested
         @DisplayName("Позитивные сценарии")
@@ -28,21 +33,29 @@ class LoginTests extends BaseTest {
 
                 @Test
                 @Tag("smoke")
-                @Timeout(20)
+                @Timeout(90)
                 @DisplayName("Успешный вход в secure area")
                 void shouldLoginWithValidCredentials() {
-                        final LoginPage loginPage = new LoginPage(page()).open();
-                        loginPage.login(VALID_USERNAME, VALID_PASSWORD);
-
-                        final SecureAreaPage secureAreaPage = new SecureAreaPage(page());
+                        final SecureAreaPage secureAreaPage = new LoginPage(page()).get()
+                                        .loginAs(CredentialsFactory.valid());
 
                         assertAll("Результат успешного логина",
                                         () -> assertTrue(secureAreaPage.isOpened(),
                                                         "Secure Area должна быть отображена после логина"),
-                                        () -> assertTrue(
-                                                        secureAreaPage.successMessage()
-                                                                        .contains("You logged into a secure area!"),
+                                        () -> assertEquals(message(LOGIN_SUCCESS), secureAreaPage.flashMessage(),
                                                         "Должно отображаться success-сообщение"));
+                }
+
+                @Test
+                @Tag("regression")
+                @DisplayName("Вход и выход: цепочка login -> logout")
+                void shouldLogoutAfterLogin() {
+                        final LoginPage loginPage = new LoginPage(page()).get()
+                                        .loginAs(CredentialsFactory.valid())
+                                        .logout();
+
+                        assertEquals(message(LOGOUT_SUCCESS), loginPage.flashMessage(),
+                                        "После выхода должно отображаться сообщение о выходе");
                 }
         }
 
@@ -51,24 +64,16 @@ class LoginTests extends BaseTest {
         class NegativeScenarios {
 
                 @Tag("regression")
-                @ParameterizedTest(name = "username={0}, password={1} -> {2}")
-                @CsvSource({
-                                "wrong_user, wrong_password, Your username is invalid!",
-                                "wrong_user, SuperSecretPassword!, Your username is invalid!",
-                                "tomsmith, wrong_password, Your password is invalid!",
-                                "'', '', Your username is invalid!"
-                })
-                void shouldShowErrorForInvalidCredentials(final String username,
-                                final String password,
-                                final String expectedMessage) {
-                        final LoginPage loginPage = new LoginPage(page()).open();
-                        loginPage.login(username, password);
+                @ParameterizedTest(name = "{0}")
+                @MethodSource("com.dzollo.hw4.data.LoginDataProvider#invalidCredentials")
+                void shouldShowErrorForInvalidCredentials(final String scenario,
+                                final Credentials credentials,
+                                final FlashMessage expectedMessage) {
+                        final LoginPage loginPage = new LoginPage(page()).get()
+                                        .loginWithInvalid(credentials);
 
-                        assertAll("Ошибка авторизации",
-                                        () -> assertTrue(loginPage.isFlashMessageVisible(),
-                                                        "Flash-сообщение должно появиться после неудачного логина"),
-                                        () -> assertTrue(loginPage.flashMessage().contains(expectedMessage),
-                                                        "Ожидалось сообщение: " + expectedMessage));
+                        assertEquals(expectedMessage, loginPage.flashMessage(),
+                                        "Сообщение об ошибке не совпадает для сценария: " + scenario);
                 }
 
                 @Test

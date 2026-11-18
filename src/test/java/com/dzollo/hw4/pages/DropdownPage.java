@@ -1,31 +1,44 @@
 package com.dzollo.hw4.pages;
 
-import com.microsoft.playwright.Locator;
+import com.dzollo.hw4.elements.Select;
+import com.dzollo.hw4.model.DropdownOption;
 import com.microsoft.playwright.Page;
 
-public class DropdownPage extends BasePage {
-    private final Locator dropdown;
+public class DropdownPage extends BasePage<DropdownPage> {
+    private static final String PATH = "/dropdown";
+
+    private final Select dropdown;
 
     public DropdownPage(final Page page) {
         super(page);
-        dropdown = page.locator("#dropdown");
+        dropdown = new Select(page.locator("#dropdown"), "Dropdown");
     }
 
-    public DropdownPage open() {
-        openPath("/dropdown");
+    @Override
+    protected void load() {
+        openPath(PATH);
+    }
+
+    @Override
+    protected void isLoaded() {
+        require(isCurrentUrlContains(PATH), "Страница dropdown не открыта, url: " + currentUrl());
+        dropdown.waitUntilVisible();
+    }
+
+    public DropdownPage select(final DropdownOption option) {
+        dropdown.selectByValue(option.getValue());
         return this;
     }
 
-    public void selectOption(final String value) {
-        dropdown.selectOption(value);
+    public DropdownOption selectedOption() {
+        return DropdownOption.fromValue(dropdown.selectedValue());
     }
 
     public String selectedValue() {
-        return dropdown.inputValue();
+        return dropdown.selectedValue();
     }
 
     public String selectedOptionText() {
-        return dropdown.locator("option:checked")
-                .innerText().trim();
+        return dropdown.selectedText();
     }
 }

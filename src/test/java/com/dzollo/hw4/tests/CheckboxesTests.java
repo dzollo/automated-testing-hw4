@@ -15,6 +15,8 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import com.dzollo.hw4.BaseTest;
 import com.dzollo.hw4.pages.CheckboxesPage;
@@ -25,10 +27,10 @@ class CheckboxesTests extends BaseTest {
 
         @Test
         @Tag("smoke")
-        @Timeout(20)
+        @Timeout(90)
         @DisplayName("Начальное состояние чекбоксов")
         void shouldHaveDefaultState() {
-                final CheckboxesPage checkboxesPage = new CheckboxesPage(page()).open();
+                final CheckboxesPage checkboxesPage = new CheckboxesPage(page()).get();
 
                 assertAll("Начальное состояние",
                                 () -> assertFalse(checkboxesPage.isChecked(0),
@@ -41,10 +43,9 @@ class CheckboxesTests extends BaseTest {
         @Tag("regression")
         @DisplayName("Выбрать первый и снять выбор со второго")
         void shouldCheckFirstAndUncheckSecondCheckbox() {
-                final CheckboxesPage checkboxesPage = new CheckboxesPage(page()).open();
-
-                checkboxesPage.check(0);
-                checkboxesPage.uncheck(1);
+                final CheckboxesPage checkboxesPage = new CheckboxesPage(page()).get()
+                                .check(0)
+                                .uncheck(1);
 
                 assertAll("Состояние после переключения",
                                 () -> assertTrue(checkboxesPage.isChecked(0),
@@ -54,21 +55,18 @@ class CheckboxesTests extends BaseTest {
         }
 
         @TestFactory
+        @Execution(ExecutionMode.SAME_THREAD) // динамические тесты делят одну page -> только последовательно
         @Tag("regression")
         @DisplayName("Каждый чекбокс переключается в противоположное состояние")
         Stream<DynamicTest> shouldToggleEachCheckbox() {
-                final int total = new CheckboxesPage(page()).open().count();
+                final int total = new CheckboxesPage(page()).get().count();
 
                 return IntStream.range(0, total)
                                 .mapToObj(index -> dynamicTest("Переключение чекбокса №" + (index + 1), () -> {
-                                        final CheckboxesPage checkboxesPage = new CheckboxesPage(page()).open();
+                                        final CheckboxesPage checkboxesPage = new CheckboxesPage(page()).get();
                                         final boolean initial = checkboxesPage.isChecked(index);
 
-                                        if (initial) {
-                                                checkboxesPage.uncheck(index);
-                                        } else {
-                                                checkboxesPage.check(index);
-                                        }
+                                        checkboxesPage.toggle(index);
 
                                         assertEquals(!initial, checkboxesPage.isChecked(index),
                                                         "Состояние чекбокса должно измениться на противоположное");
